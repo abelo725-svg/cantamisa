@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barra de Reproducción Aleatoria</title>
+    <style>
+        /* Estilos para la barra horizontal compacta */
+        body { 
+            margin: 0; 
+            padding: 10px; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: transparent; 
+        }
+        
+        .player-bar { 
+            display: flex; 
+            align-items: center; 
+            background: #ffffff; 
+            padding: 12px 20px; 
+            border-radius: 50px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            max-width: 600px; 
+            margin: 0 auto;
+            gap: 15px;
+        }
+
+        .cover-mini { 
+            width: 50px; 
+            height: 50px; 
+            border-radius: 50%; 
+            object-fit: cover;
+            animation: rotate 10s linear infinite;
+            animation-play-state: paused; 
+        }
+
+        .info-track { 
+            flex-grow: 1; 
+            min-width: 0; 
+        }
+
+        .info-track h4 { margin: 0; color: #333; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .info-track p { margin: 2px 0 0 0; color: #777; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .controls { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+        }
+
+        .btn { 
+            background: #f0f0f0; 
+            border: none; 
+            width: 38px; 
+            height: 38px; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            font-size: 14px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            transition: all 0.2s ease;
+            color: #444;
+        }
+
+        .btn:hover { background: #e0e0e0; }
+        
+        .btn-play { 
+            background: #4CAF50; 
+            color: white; 
+            width: 44px; 
+            height: 44px; 
+            font-size: 16px;
+        }
+        .btn-play:hover { background: #45a049; }
+
+        .btn-shuffle.active { 
+            background: #2196F3; 
+            color: white; 
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<audio id="miAudio"></audio>
+
+<div class="player-bar">
+    <img id="portada" class="cover-mini" src="https://picsum.photos/id/101/150/150" alt="Portada">
+    
+    <div class="info-track">
+        <h4 id="titulo">Cargando canción...</h4>
+        <p id="artista">Por favor espera</p>
+    </div>
+    
+    <div class="controls">
+        <button id="shuffleBtn" class="btn btn-shuffle" onclick="toggleShuffle()" title="Aleatorio">🔀</button>
+        <button class="btn" onclick="anteriorCancion()" title="Anterior">⏮</button>
+        <button id="playBtn" class="btn btn-play" onclick="togglePlay()" title="Reproducir">▶</button>
+        <button class="btn" onclick="siguienteCancion()" title="Siguiente">⏭</button>
+    </div>
+</div>
+
+<script>
+  // 1. Lista de canciones vinculadas localmente a tu GitHub
+  // NOTA: Asegúrate de que los nombres de archivo aquí coincidan EXACTAMENTE con cómo los subiste.
+  const playlist = [
+    {
+      title: 'Dios trino',
+      artist: 'Cantamisa',
+      src: 'dios_trino.mp3', 
+      cover: 'https://picsum.photos/id/101/150/150'
+    },
+    {
+      title: 'Juntos cantando la alegría',
+      artist: 'Cantamisa',
+      src: 'juntos_cantando_la_alegria.mp3',
+      cover: 'https://picsum.photos/id/101/150/150'
+    },
+    {
+      title: 'Juntos como hermanos',
+      artist: 'Cantamisa',
+      src: 'juntos_como_hermanos.mp3',
+      cover: 'https://picsum.photos/id/101/150/150'
+    },
+    {
+      title: 'Qué alegría (salmo 121-122)',
+      artist: 'Cantamisa',
+      src: 'que_alegria.mp3',
+      cover: 'https://picsum.photos/id/101/150/150'
+    },
+    {
+      title: 'Vamos cantando al Señor',
+      artist: 'Cantamisa',
+      src: 'vamos_cantando_al_senor.mp3',
+      cover: 'https://picsum.photos/id/101/150/150'
+    },
+    {
+      title: 'Venid a celebrar',
+      artist: 'Cantamisa',
+      src: 'venid_a_celebrar.mp3',
+      cover: 'https://picsum.photos/id/101/150/150'
+    },
+    {
+      title: 'Vienen con alegría',
+      artist: 'Cantamisa',
+      src: 'vienen_con_alegria.mp3',
+      cover: 'https://picsum.photos/id/101/150/150'
+    },
+    {
+      title: 'No vayas triste en soledad',
+      artist: 'Cantamisa',
+      src: 'no_vayas_triste_en_soledad.mp3',
+      cover: 'https://picsum.photos/id/101/150/150'
+    },
+    {
+      title: 'Quién es hijo de Dios',
+      artist: 'Cantamisa',
+      src: 'quien_es_hijo_de_Dios.mp3',
+      cover: 'https://picsum.photos/id/101/150/150'
+    },
+    {
+      title: 'Vamos a bendecir al Señor',
+      artist: 'Cantamisa',
+      src: 'vamos_a_bendecir_al_Senor.mp3',
+      cover: 'https://picsum.photos/id/101/150/150'
+    },
+    {
+      title: 'Anunciaremos tu reino Señor',
+      artist: 'Cantamisa',
+      src: 'anunciaremos_tu_reino_Senor.mp3',
+      cover: 'https://picsum.photos/id/101/150/150'
+    }
+  ];
+
+  let currentIndex = 0;
+  let isShuffle = false;
+
+  const audio = document.getElementById('miAudio');
+  const tituloTxt = document.getElementById('titulo');
+  const artistaTxt = document.getElementById('artista');
+  const portadaImg = document.getElementById('portada');
+  const playBtn = document.getElementById('playBtn');
+  const shuffleBtn = document.getElementById('shuffleBtn');
+
+  function cargarCancion(index) {
+    currentIndex = index;
+    const cancion = playlist[currentIndex];
+    
+    audio.src = cancion.src;
+    tituloTxt.innerText = cancion.title;
+    artistaTxt.innerText = cancion.artist;
+    portadaImg.src = cancion.cover;
+    
+    actualizarPantallaBloqueo(cancion);
+  }
+
+  function togglePlay() {
+    if (audio.paused) {
+      audio.play();
+    } else {
+      audio.pause();
+    }
+  }
+
+  audio.addEventListener('play', () => {
+    playBtn.innerText = "⏸"; 
+    portadaImg.style.animationPlayState = "running"; 
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "playing";
+  });
+
+  audio.addEventListener('pause', () => {
+    playBtn.innerText = "▶"; 
+    portadaImg.style.animationPlayState = "paused"; 
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "paused";
+  });
+
+  function toggleShuffle() {
+    isShuffle = !isShuffle;
+    shuffleBtn.classList.toggle('active', isShuffle);
+  }
+
+  function siguienteCancion() {
+    if (isShuffle && playlist.length > 1) {
+      let nuevoIndex;
+      do {
+        nuevoIndex = Math.floor(Math.random() * playlist.length);
+      } while (nuevoIndex === currentIndex);
+      cargarCancion(nuevoIndex);
+    } else {
+      let nuevoIndex = currentIndex + 1;
+      if (nuevoIndex >= playlist.length) nuevoIndex = 0;
+      cargarCancion(nuevoIndex);
+    }
+    audio.play();
+  }
+
+  function anteriorCancion() {
+    if (isShuffle && playlist.length > 1) {
+      let nuevoIndex;
+      do {
+        nuevoIndex = Math.floor(Math.random() * playlist.length);
+      } while (nuevoIndex === currentIndex);
+      cargarCancion(nuevoIndex);
+    } else {
+      let nuevoIndex = currentIndex - 1;
+      if (nuevoIndex < 0) nuevoIndex = playlist.length - 1; 
+      cargarCancion(nuevoIndex);
+    }
+    audio.play();
+  }
+
+  audio.addEventListener('ended', siguienteCancion);
+
+  function actualizarPantallaBloqueo(cancion) {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: cancion.title,
+        artist: cancion.artist,
+        artwork: [{ src: cancion.cover, sizes: '150x150', type: 'image/jpeg' }]
+      });
+    }
+  }
+
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.setActionHandler('play', togglePlay);
+    navigator.mediaSession.setActionHandler('pause', togglePlay);
+    navigator.mediaSession.setActionHandler('previoustrack', anteriorCancion);
+    navigator.mediaSession.setActionHandler('nexttrack', siguienteCancion);
+  }
+
+  cargarCancion(0);
+</script>
+
+</body>
+</html>
